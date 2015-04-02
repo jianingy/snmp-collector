@@ -1,0 +1,13 @@
+Metadata-Version: 1.1
+Name: snmp-collector
+Version: 0.1
+Summary: Gather SNMP data and send to graphite
+Home-page: UNKNOWN
+Author: Jianing Yang
+Author-email: jianingy.yang@gmail.com
+License: UNKNOWN
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta Development Status
+Classifier: Environment :: Console
+Classifier: Topic :: Utilities

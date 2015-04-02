@@ -1,0 +1,10 @@
+---
+hosts:
+  - host: el601
+    community: public
+    version: 1
+
+metrics:
+  - host: el601
+    metric: test.c.value
+    oid: iso.3.6.1.2.1.1.8.0

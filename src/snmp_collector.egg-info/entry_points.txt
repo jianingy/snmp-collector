@@ -1,0 +1,3 @@
+[console_scripts]
+snmp-collector = snmp_collector.cmd:do_collect
+
