@@ -91,7 +91,6 @@ def collect_metric(metric, hosts):
     var = netsnmp.Varbind(metric['oid'])
     res = netsnmp.snmpget(var, Version=int(host.get('version', 1)),
                           DestHost=host.get('host'),
-                          Timeout=CONF.timeout,
                           Community=host.get('community', 'public'))
     message = "%s %s %d" % (metric['metric'], res[0], time.time())
     return message
