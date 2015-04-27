@@ -61,6 +61,7 @@ def setup():
                         datefmt='%Y-%m-%d %H:%M:%S')
     celery_app.conf.BROKER_URL = CONF.broker
     celery_app.conf.CELERY_TASK_SERIALIZER = 'yaml'
+    celery_app.conf.CELERY_ACCEPT_CONTENT = ['json', 'yaml']
 
 
 def reload_task():
