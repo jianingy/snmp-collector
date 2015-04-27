@@ -48,7 +48,7 @@ CONF = cfg.CONF
 CONF.register_cli_opts(cli_opts)
 LOG = logging.getLogger(__name__)
 
-celery_app = Celery('snmp_collector', backend='amqp')
+celery_app = Celery('snmp_collector', backend='amqp', serializer='yaml')
 
 
 def setup():
@@ -59,6 +59,8 @@ def setup():
     logging.basicConfig(level=log_level,
                         format=log_format,
                         datefmt='%Y-%m-%d %H:%M:%S')
+    celery_app.conf.BROKER_URL = CONF.broker
+    celery_app.conf.CELERY_TASK_SERIALIZER = 'yaml'
 
 
 def reload_task():
@@ -95,7 +97,6 @@ def collect_metric(metric, hosts):
 
 def run_scheduler():
     setup()
-    celery_app.conf.BROKER_URL = CONF.broker
     hosts, metrics = reload_task()
 
     workers = []
@@ -123,7 +124,6 @@ def run_worker():
     from celery.task.control import discard_all
 
     setup()
-    celery_app.conf.BROKER_URL = CONF.broker
     worker = celery_worker.worker(app=celery_app)
     if CONF.debug:
         traceback = True
