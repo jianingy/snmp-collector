@@ -123,6 +123,7 @@ def run_worker():
     from celery.task.control import discard_all
 
     setup()
+    celery_app.conf.BROKER_URL = CONF.broker
     worker = celery_worker.worker(app=celery_app)
     if CONF.debug:
         traceback = True
@@ -133,5 +134,5 @@ def run_worker():
 
     discard_all()
 
-    worker.run(broker=CONF.broker, concurrency=CONF.num_workers,
+    worker.run(concurrency=CONF.num_workers,
                traceback=traceback, loglevel=loglevel)
