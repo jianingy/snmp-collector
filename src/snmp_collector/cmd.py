@@ -48,18 +48,14 @@ CONF = cfg.CONF
 CONF.register_cli_opts(cli_opts)
 LOG = logging.getLogger(__name__)
 
-celery_app = Celery('snmp_collector', backend='amqp', broker=CONF.broker)
+celery_app = Celery('snmp_collector', backend='amqp')
 
 
 def setup():
     CONF(sys.argv[1:])
     log_level = logging.DEBUG if CONF.debug else logging.INFO
-    if hasattr(CONF, 'device_type'):
-        log_format = ('%(asctime)s|[%(levelname)s] #%(process)d'
-                      ' (%(name)s) <' + CONF.device_type + '> %(message)s')
-    else:
-        log_format = ('%(asctime)s|[%(levelname)s] #%(process)d'
-                      ' (%(name)s) %(message)s')
+    log_format = ('%(asctime)s|[%(levelname)s] #%(process)d'
+                  ' (%(name)s) %(message)s')
     logging.basicConfig(level=log_level,
                         format=log_format,
                         datefmt='%Y-%m-%d %H:%M:%S')
@@ -99,13 +95,15 @@ def collect_metric(metric, hosts):
 
 def run_scheduler():
     setup()
+    celery_app.conf.BROKER_URL = CONF.broker
     hosts, metrics = reload_task()
 
     workers = []
+    collect_metric.broker = CONF.broker
     collect_metric.time_limit = CONF.timeout
     for metric in metrics.values():
         try:
-            worker = collect_metric.apply_async(args=[metric, hosts])
+            worker = collect_metric.apply_async(args=[metric, hosts], broker=CONF.broker)
             workers.append(worker)
         except Exception as e:
             print "ERROR: %s" % e
