@@ -61,6 +61,7 @@ def setup():
                         datefmt='%Y-%m-%d %H:%M:%S')
     celery_app.conf.BROKER_URL = CONF.broker
     celery_app.conf.CELERY_TASK_SERIALIZER = 'yaml'
+    celery_app.conf.CELERY_RESULT_SERIALIZER = 'json'
     celery_app.conf.CELERY_ACCEPT_CONTENT = ['json', 'yaml']
 
 
@@ -105,7 +106,7 @@ def run_scheduler():
     collect_metric.time_limit = CONF.timeout
     for metric in metrics.values():
         try:
-            worker = collect_metric.apply_async(args=[metric, hosts], broker=CONF.broker)
+            worker = collect_metric.apply_async(args=[metric, hosts])
             workers.append(worker)
         except Exception as e:
             print "ERROR: %s" % e
