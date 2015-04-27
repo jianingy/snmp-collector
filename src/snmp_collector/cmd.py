@@ -16,7 +16,9 @@
 #
 # Author: Jianing Yang <jianingy.yang@gmail.com>
 #
-
+from celery import Celery
+from celery.bin import worker as celery_worker
+from celery.result import ResultSet
 from oslo.config import cfg
 from yaml import load as yaml_load
 
@@ -34,12 +36,19 @@ cli_opts = [
                help='graphite port'),
     cfg.StrOpt('task', default='conf/default.yml',
                help='task configuration'),
-
+    cfg.IntOpt('timeout', default=30,
+               help='timeout in seconds'),
+    cfg.StrOpt('broker', default='amqp://mypush:mypush@deb01/mypush',
+               help='celery broker connection string'),
+    cfg.IntOpt('num_workers', default=8,
+               help='# of workers'),
 ]
 
 CONF = cfg.CONF
 CONF.register_cli_opts(cli_opts)
 LOG = logging.getLogger(__name__)
+
+celery_app = Celery('snmp_collector', backend='amqp', broker=CONF.broker)
 
 
 def setup():
@@ -76,21 +85,55 @@ def write_graphite(messages):
     tn.close()
 
 
-def do_collect():
+@celery_app.task(acks_late=True)
+def collect_metric(metric, hosts):
+    host = hosts[metric['host']]
+    var = netsnmp.Varbind(metric['oid'])
+    res = netsnmp.snmpget(var, Version=int(host.get('version', 1)),
+                          DestHost=host.get('host'),
+                          Timeout=CONF.timeout,
+                          Community=host.get('community', 'public'))
+    message = "%s %s %d" % (metric['metric'], res[0], time.time())
+    return message
+
+
+def run_scheduler():
     setup()
     hosts, metrics = reload_task()
 
-    messages = []
+    workers = []
+    collect_metric.time_limit = CONF.timeout
     for metric in metrics.values():
-        host = hosts[metric['host']]
-        var = netsnmp.Varbind(metric['oid'])
-        res = netsnmp.snmpget(var, Version=int(host.get('version', 1)),
-                              DestHost=host.get('host'),
-                              Community=host.get('community', 'public'))
-        message = "%s %s %d" % (metric['metric'], res[0], time.time())
-        messages.append(message)
+        try:
+            worker = collect_metric.apply_async(args=[metric, hosts])
+            workers.append(worker)
+        except Exception as e:
+            print "ERROR: %s" % e
 
+    messages = []
+
+    def _acc(task_id, value):
+        messages.append(str(value))
+
+    ResultSet(workers).get(timeout=CONF.timeout,
+                           propagate=False,
+                           callback=_acc)
     write_graphite(messages)
 
-if __name__ == "__main__":
-    do_collect()
+
+def run_worker():
+    from celery.task.control import discard_all
+
+    setup()
+    worker = celery_worker.worker(app=celery_app)
+    if CONF.debug:
+        traceback = True
+        loglevel = 'DEBUG'
+    else:
+        traceback = False
+        loglevel = 'INFO'
+
+    discard_all()
+
+    worker.run(broker=CONF.broker, concurrency=CONF.num_workers,
+               traceback=traceback, loglevel=loglevel)

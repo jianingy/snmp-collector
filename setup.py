@@ -26,12 +26,13 @@ setuptools.setup(
     author='Jianing Yang',
     author_email='jianingy.yang@gmail.com',
     url='',
-    install_requires=['oslo.config', 'PyYAML'],
+    install_requires=['oslo.config', 'PyYAML', 'Celery'],
     packages=['snmp_collector'],
     package_dir={'': 'src'},
     entry_points={
         'console_scripts': [
-            'snmp-collector=snmp_collector.cmd:do_collect',
+            'sc-scheduler=snmp_collector.cmd:run_scheduler',
+            'sc-worker=snmp_collector.cmd:run_worker',
             ]
         },
     classifiers=[

@@ -1,6 +1,7 @@
 setup.py
 src/snmp_collector/__init__.py
 src/snmp_collector/cmd.py
+src/snmp_collector/collector.py
 src/snmp_collector.egg-info/PKG-INFO
 src/snmp_collector.egg-info/SOURCES.txt
 src/snmp_collector.egg-info/dependency_links.txt
